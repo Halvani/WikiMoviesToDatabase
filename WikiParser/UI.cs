@@ -16,9 +16,9 @@ namespace WikiParser
         // https://de.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&format=xmlfm&titles=König_der_Freibeuter&rvsection=0 
 
 
-        public string ApplicationPath { get; set; }
-        public string MoviesPath { get; set; }
-        public string[] MoviesFilePaths { get; set; }
+        public string ApplicationPath { get; set; } // The folder of the executable (.exe)
+        public string PathOfMovieSites { get; set; } // The folder where we want to save the MediaWiki pages (.htm files).
+        public string[] MoviesFilePaths { get; set; } // WTF is this one ???
 
 
         #region UI initialization.
@@ -28,18 +28,20 @@ namespace WikiParser
             InitializeComponent();
 
             ApplicationPath = AppDomain.CurrentDomain.BaseDirectory;
-            MoviesPath = string.Concat(ApplicationPath, "Filme_test");
-            txtMovieFolder.Text = MoviesPath;
+            PathOfMovieSites = string.Concat(ApplicationPath, "Filme_test");
+            txtMovieFolder.Text = PathOfMovieSites;
             PopulateComboMovies();
 
-            tabParent.SelectedTab = tabDebug;            
+            tabOptions.SelectedTab = tabCrawling;
+            comboTopCategory.SelectedIndex = 0;
+            comboCategoryMoviesByState.SelectedIndex = 0;          
         }
 
         private void PopulateComboMovies()
         {
-            if (Directory.Exists(MoviesPath))
+            if (Directory.Exists(PathOfMovieSites))
             {
-                MoviesFilePaths = Directory.GetFiles(MoviesPath, "*.htm", SearchOption.TopDirectoryOnly).OrderBy(x => x).ToArray();
+                MoviesFilePaths = Directory.GetFiles(PathOfMovieSites, "*.htm", SearchOption.TopDirectoryOnly).OrderBy(x => x).ToArray();
 
                 if (MoviesFilePaths.Length > 0)
                 {
@@ -58,14 +60,14 @@ namespace WikiParser
         private void btnMoviesPath_Click(object sender, EventArgs e)
         {
             FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
-            folderBrowserDialog.SelectedPath = MoviesPath;
+            folderBrowserDialog.SelectedPath = PathOfMovieSites;
             DialogResult dialogResult = folderBrowserDialog.ShowDialog();
             string chosenMoviePath = folderBrowserDialog.SelectedPath;
 
             if (!string.IsNullOrEmpty(folderBrowserDialog.SelectedPath))
             {
-                MoviesPath = folderBrowserDialog.SelectedPath;
-                txtMovieFolder.Text = MoviesPath;
+                PathOfMovieSites = folderBrowserDialog.SelectedPath;
+                txtMovieFolder.Text = PathOfMovieSites;
                 PopulateComboMovies();
             }
         }
@@ -76,19 +78,29 @@ namespace WikiParser
 
         private void btnCrawlWebsites_Click(object sender, EventArgs e)
         {
-            string appPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            string wikipediaCategoryURLPath = string.Concat(appPath, @"\Movie URL's\US-Filme.txt");
+            //string appPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            //string wikipediaCategoryURLPath = string.Concat(appPath, @"\Movie URL's\US-Filme.txt");
 
-            // https://de.wikipedia.org/w/index.php?title=Kategorie:US-amerikanischer_Film&pagefrom=Bi";
-            string[] wikipediaCategoryURLs = File.ReadAllLines(wikipediaCategoryURLPath);
+            //// https://de.wikipedia.org/w/index.php?title=Kategorie:US-amerikanischer_Film&pagefrom=Bi";
+            //string[] wikipediaCategoryURLs = File.ReadAllLines(wikipediaCategoryURLPath);
 
-            foreach (var wikipediaCategoryURL in wikipediaCategoryURLs)
+            //foreach (var wikipediaCategoryURL in wikipediaCategoryURLs)
+            //{
+            //    var mediaWikiMovieUrls = Crawler.ConstructMediaWikiURLs(wikipediaCategoryURL);
+            //    foreach (var mediaWikiMovieUrl in mediaWikiMovieUrls)
+            //    {
+            //        Crawler.PersistMovieWebsite(mediaWikiMovieUrl, PathOfMovieSites);
+            //    }
+            //}
+
+
+
+            // https://de.wikipedia.org/wiki/Kategorie:Israelischer_Film
+
+            var mediaWikiMovieUrls = Crawler.ConstructMediaWikiURLs(comboCategoryMoviesByState.Text);
+            foreach (var mediaWikiMovieUrl in mediaWikiMovieUrls)
             {
-                var mediaWikiMovieUrls = Crawler.ConstructMediaWikiURLs(wikipediaCategoryURL);
-                foreach (var mediaWikiMovieUrl in mediaWikiMovieUrls)
-                {
-                    Crawler.PersistMovieWebsite(mediaWikiMovieUrl);
-                }
+                Crawler.PersistMovieWebsite(mediaWikiMovieUrl, PathOfMovieSites);
             }
         }
 
@@ -125,6 +137,37 @@ namespace WikiParser
             reMain.Text = sb.ToString();
         }
 
-       
+
+
+
+        private void PopulateCategoryMoviesByCountry()
+        {
+            string wikiBaseCategory = @"https://de.wikipedia.org/wiki/";
+            string movieTitleByCountry = wikiBaseCategory + "Kategorie:Filmtitel_nach_Staat";
+
+            string[] countries = Crawler.ParseMovieTitlesFromCategoryWiki(movieTitleByCountry);
+            foreach (var country in countries)
+            {
+                // https://de.wikipedia.org/wiki/Kategorie:Jordanischer_Film
+                comboCategoryMoviesByState.Items.Add(string.Concat(wikiBaseCategory, country));
+            }
+
+            comboCategoryMoviesByState.SelectedIndex = 0;
+
+            File.WriteAllLines(@"C:\data.txt", countries);
+        }
+
+
+        
+
+        private void btnPopulateCategoryMoviesByState_Click(object sender, EventArgs e)
+        {
+            PopulateCategoryMoviesByCountry();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            PopulateComboMovies();
+        }
     }
 }

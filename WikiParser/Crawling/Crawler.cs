@@ -7,27 +7,36 @@ using System.Text.RegularExpressions;
 namespace WikiParser.Crawling
 {
     public class Crawler
-    {
-        public static string[] ConstructMediaWikiURLs(string wikipediaCategoryURL)
+    {        
+
+        public static string[] ParseMovieTitlesFromCategoryWiki(string wikipediaCategoryURL)
         {
             HtmlWeb hw = new HtmlWeb();
             HtmlAgilityPack.HtmlDocument doc = hw.Load(wikipediaCategoryURL);
-            HtmlNode divBlock = doc.DocumentNode.SelectSingleNode(".//div[contains(@class,'mw-category-group')]");
+            var divBlock = doc.DocumentNode.SelectSingleNode(".//div[contains(@class,'mw-category')]");            
 
-
-            // If you use //, it searches from the document begin.
-            // Use .// to search all from the current node
-
-            List<string> parsedMovieURLs = new List<string>();
+            // Remember: "//" searches from the beginning of the document. In contrast: ".//" searches anything the current node.
+            List<string> tempMovieURLs = new List<string>();
             foreach (HtmlNode link in divBlock.SelectNodes(".//a[@href]"))
             {
                 HtmlAttribute att = link.Attributes["href"];
+
                 foreach (var wuff in att.Value.Split(' '))
                 {
                     string cleanedMovieTitle = Regex.Replace(wuff, @"/wiki/", "");
-                    parsedMovieURLs.Add(cleanedMovieTitle);
+                    tempMovieURLs.Add(cleanedMovieTitle);
                 }
             }
+
+            string[] parsedMovieTitles = tempMovieURLs.ToArray();
+            return parsedMovieTitles;
+        }
+        
+
+
+        public static string[] ConstructMediaWikiURLs(string wikipediaCategoryURL)
+        {
+            var parsedMovieTitles = ParseMovieTitlesFromCategoryWiki(wikipediaCategoryURL);
 
             #region Request MediaWiki.
             /*************************************************************/
@@ -38,8 +47,7 @@ namespace WikiParser.Crawling
             /*************************************************************/
             #endregion
 
-
-            string[] mediaWikiMovieUrls = parsedMovieURLs.ToArray();
+            string[] mediaWikiMovieUrls = parsedMovieTitles;
 
             for (int i = 0; i < mediaWikiMovieUrls.Length; i++)
             {
@@ -53,7 +61,7 @@ namespace WikiParser.Crawling
         }
 
 
-        public static void PersistMovieWebsite(string mediaWikiMovieUrl)
+        public static void PersistMovieWebsite(string mediaWikiMovieUrl, string folderPath)
         {
             string temp = "&titles=";
             string movieTitle = mediaWikiMovieUrl.Substring(mediaWikiMovieUrl.IndexOf(temp) + temp.Length);
@@ -64,7 +72,9 @@ namespace WikiParser.Crawling
             movieTitle = Regex.Replace(movieTitle, @"[\/?:*""><|]+", string.Empty, RegexOptions.Compiled);
 
             string appPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            string fileName = string.Concat(appPath, @"\Filme\", movieTitle, ".htm");
+
+            //string fileName = string.Concat(appPath, @"\Filme\", movieTitle, ".htm");
+            string fileName = string.Concat(folderPath, @"\", movieTitle, ".htm");
 
             WebClient webClient = new WebClient();
             webClient.DownloadFile(mediaWikiMovieUrl, fileName);
