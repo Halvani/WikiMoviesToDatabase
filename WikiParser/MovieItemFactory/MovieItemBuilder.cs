@@ -191,13 +191,11 @@ namespace WikiParser.MovieItemFactory
 
             cleanMovieDescription = ReplaceOptionalWikitextByLastItem(cleanMovieDescription);
 
-
             cleanMovieDescription = Regex.Replace(cleanMovieDescription, "&lt;/.*&gt;", string.Empty);
             cleanMovieDescription = Regex.Replace(cleanMovieDescription, "&lt;ref name=&quot;.*&quot;&gt;", " ");
             cleanMovieDescription = Regex.Replace(cleanMovieDescription, "&amp;nbsp;", " ");
             cleanMovieDescription = Regex.Replace(cleanMovieDescription, @"\s{2,}", " ");
-            cleanMovieDescription = Regex.Replace(cleanMovieDescription, @"'+", "'");
-            
+            cleanMovieDescription = Regex.Replace(cleanMovieDescription, @"'+", "'");            
 
             return cleanMovieDescription;
         }
